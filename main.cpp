@@ -23,8 +23,8 @@ static void drawTexture()
 		int width = 0, height = 0;
 		glfwGetWindowSize( window, &width, &height );
 		cursorY = (double)height - cursorY; // set origin to lower left corner instead of upper left window corner
-		unsigned int cursorOnTextureX = ((double)cursorX/(double)width) * (double)texture->getWidth();
-		unsigned int cursorOnTextureY = ((double)cursorY/(double)height) * (double)texture->getHeight();
+		unsigned int cursorOnTextureX = (unsigned int)(((double)cursorX/(double)width) * (double)texture->getWidth());
+		unsigned int cursorOnTextureY = (unsigned int)(((double)cursorY / (double)height) * (double)texture->getHeight());
 
 		// set pixel at cursor position to a random color
 		texture->setPixel( cursorOnTextureX, cursorOnTextureY, rand()%256, rand()%256, rand()%256 );

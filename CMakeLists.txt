@@ -1,5 +1,7 @@
-project(cgframework)
-
-add_executable(cgframework main.cpp)
-
-install(TARGETS cgframework RUNTIME DESTINATION bin)
+cmake_minimum_required( VERSION 2.8 )
+project( cgframework )
+find_package( OpenGL REQUIRED )
+include_directories( ${OPENGL_INCLUDE_DIRS} )
+add_executable( cgframework main.cpp Texture.cpp )
+target_link_libraries( cgframework ${OPENGL_LIBRARIES} glfw )
+install( TARGETS cgframework RUNTIME DESTINATION bin )

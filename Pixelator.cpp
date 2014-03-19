@@ -1,3 +1,13 @@
+#ifdef _WIN32
+	#include <windows.h>
+	void usleep( unsigned int usec )
+	{
+		Sleep( usec/1000 );
+	}
+#else
+	#include <unistd.h>
+#endif
+
 #define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
@@ -7,17 +17,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <stdlib.h>
-
-
-#ifdef _WIN32
-#include <windows.h>
-void usleep( unsigned int usec )
-{
-	Sleep( usec/1000 );
-}
-#else
-#include <unistd.h>
-#endif
 
 
 bool Pixelator::anyKeyPressed = false;

@@ -15,6 +15,8 @@ void usleep( unsigned int usec )
 {
 	Sleep( usec/1000 );
 }
+#else
+#include <unistd.h>
 #endif
 
 

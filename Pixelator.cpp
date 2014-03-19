@@ -9,6 +9,15 @@
 #include <stdlib.h>
 
 
+#ifdef _WIN32
+#include <windows.h>
+void usleep( unsigned int usec )
+{
+	Sleep( usec/1000 );
+}
+#endif
+
+
 bool Pixelator::anyKeyPressed = false;
 
 
@@ -115,7 +124,10 @@ void Pixelator::wait()
 	GLFWkeyfun oldKeyCallback = glfwSetKeyCallback( window, GLFWKeyCallback );
 
 	// update window and keep updating while the window should not close and no key is pressed
-	do update(); while( !anyKeyPressed && !glfwWindowShouldClose( window ) );
+	do {
+		update();
+		usleep( 1000 );
+	} while( !anyKeyPressed && !glfwWindowShouldClose( window ) );
 
 	// restore previous key callback
 	glfwSetKeyCallback( window, oldKeyCallback );

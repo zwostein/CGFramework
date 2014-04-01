@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 
-Texture::Texture( unsigned int width, unsigned int height ) : id(0), buffer(NULL), width(0), height(0)
+Texture::Texture( unsigned int width, unsigned int height ) : id(0), width(0), height(0)
 {
 	this->create( width, height );
 }
@@ -18,12 +18,10 @@ Texture::~Texture()
 
 void Texture::free()
 {
-	if( this->buffer )
-		delete[] this->buffer;
+	this->buffer.clear();
 	if( this->id )
 		glDeleteTextures( 1, &this->id );
 	this->id = 0;
-	this->buffer = NULL;
 	width = 0;
 	height = 0;
 }
@@ -31,13 +29,13 @@ void Texture::free()
 
 void Texture::create( unsigned int width, unsigned int height )
 {
-	this->buffer = new unsigned char[ width * height * 4 * sizeof( unsigned char ) ];
+	this->buffer.resize( width * height * 4 * sizeof( unsigned char ) );
 	this->height = height;
 	this->width = width;
 
 	glGenTextures( 1, &this->id );
 	glBindTexture( GL_TEXTURE_2D, this->id );
-	glTexImage2D( GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, this->buffer );
+	glTexImage2D( GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, this->buffer.data() );
 
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
@@ -56,7 +54,7 @@ void Texture::resize( unsigned int width, unsigned int height )
 void Texture::update()
 {
 	glBindTexture( GL_TEXTURE_2D, this->id );
-	glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, this->width, this->height, GL_RGBA, GL_UNSIGNED_BYTE, this->buffer );
+	glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, this->width, this->height, GL_RGBA, GL_UNSIGNED_BYTE, this->buffer.data() );
 }
 
 

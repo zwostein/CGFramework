@@ -4,6 +4,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <vector>
+
 
 class Texture
 {
@@ -19,12 +21,13 @@ public:
 	void bind() { glBindTexture( GL_TEXTURE_2D, this->id ); }
 
 	GLuint getID() { return this->id; }
+	const std::vector<unsigned char> & getRGBAData() { return buffer; }
 	unsigned int getWidth() { return this->width; }
 	unsigned int getHeight() { return this->height; }
 
 private:
 	GLuint id;
-	unsigned char * buffer;
+	std::vector<unsigned char> buffer;
 	unsigned int width;
 	unsigned int height;
 

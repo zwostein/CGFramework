@@ -4,7 +4,10 @@
 
 #include <GLFW/glfw3.h>
 
+#include <string>
+
 #include "Texture.h"
+#include "BitmapFile.hpp"
 
 
 class Pixelator
@@ -17,6 +20,7 @@ public:
 	void clear( unsigned char r, unsigned char g, unsigned char b, unsigned char a = 0xff );
 	void wait();   ///< updates window and wait for key pressyPressed
 	void update(); ///< updates window - draws canvas and processes window events
+	void writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat = BitmapFile::RGB );
 
 	unsigned int getCanvasWidth() const { return texture->getWidth(); }
 	unsigned int getCanvasHeight() const { return texture->getHeight(); }

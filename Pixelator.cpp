@@ -13,7 +13,9 @@
 
 #include "Pixelator.h"
 #include "Texture.h"
+#include "BitmapFile.hpp"
 
+#include <string>
 #include <iostream>
 #include <stdexcept>
 #include <stdlib.h>
@@ -152,4 +154,12 @@ void Pixelator::update()
 
 	// process window events
 	glfwPollEvents();
+}
+
+
+void Pixelator::writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat )
+{
+	BitmapFile bmp( fileName, pixelFormat );
+	bmp.fromRGBAData( texture->getWidth(), texture->getHeight(), texture->getRGBAData() );
+	bmp.write();
 }

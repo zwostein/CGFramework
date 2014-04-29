@@ -32,6 +32,10 @@ void Pixelator::GLFWErrorCallback( int error, const char * description )
 
 void Pixelator::GLFWKeyCallback( GLFWwindow * window, int key, int scancode, int action, int mods )
 {
+	(void)window;
+	(void)key;
+	(void)scancode;
+	(void)mods;
 	if( action == GLFW_PRESS )
 		anyKeyPressed = true;
 }

@@ -14,7 +14,7 @@ if( USE_INTERNAL_GLFW )
 	include_directories( "glfw/include/" )
 endif()
 
-add_executable( cgframework main.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp )
+add_executable( cgframework main.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp ImageBuffer.cpp )
 target_link_libraries( cgframework glfw ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} )
 
 install( TARGETS cgframework RUNTIME DESTINATION bin )

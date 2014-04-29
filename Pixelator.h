@@ -6,24 +6,23 @@
 
 #include <string>
 
+#include "ImageBuffer.h"
 #include "Texture.h"
 #include "BitmapFile.hpp"
 
 
-class Pixelator
+class Pixelator : public ImageBuffer
 {
 public:
 	Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth = 64, unsigned int canvasHeight = 64 );
 	~Pixelator();
 
-	void setPixel( unsigned int x, unsigned int y, unsigned char r, unsigned char g, unsigned char b, unsigned char a = 0xff );
-	void clear( unsigned char r, unsigned char g, unsigned char b, unsigned char a = 0xff );
+	Pixelator & operator=( const ImageBuffer & other ) { ImageBuffer::operator=(other); return *this; }
+
 	void wait();   ///< updates window and wait for key pressyPressed
 	void update(); ///< updates window - draws canvas and processes window events
 	void writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat = BitmapFile::RGB );
-
-	unsigned int getCanvasWidth() const { return texture->getWidth(); }
-	unsigned int getCanvasHeight() const { return texture->getHeight(); }
+	void readBMP( const std::string & fileName );
 
 	GLFWwindow * getWindow() { return window; }
 

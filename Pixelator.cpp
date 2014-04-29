@@ -37,7 +37,7 @@ void Pixelator::GLFWKeyCallback( GLFWwindow * window, int key, int scancode, int
 }
 
 
-Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth, unsigned int canvasHeight )
+Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth, unsigned int canvasHeight ) : ImageBuffer( canvasWidth, canvasHeight )
 {
 	// initialize GLFW
 	glfwSetErrorCallback( GLFWErrorCallback );
@@ -48,8 +48,8 @@ Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsig
 
 	// create a window
 	glfwWindowHint( GLFW_RESIZABLE, GL_FALSE );
-	window = glfwCreateWindow( windowWidth, windowHeight, "CGFramework", NULL, NULL );
-	if( !window )
+	this->window = glfwCreateWindow( windowWidth, windowHeight, "CGFramework", NULL, NULL );
+	if( !this->window )
 	{
 		glfwTerminate();
 		throw std::runtime_error( "Failed to create GLFW window" );
@@ -57,21 +57,23 @@ Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsig
 
 	// switch to the window's GL context
 	// after this call you can use GL functions until the window is destroyed
-	glfwMakeContextCurrent( window );
+	glfwMakeContextCurrent( this->window );
 
 	// enable vsync
 	glfwSwapInterval( 1 );
 
+	// set image to black initially
+	this->clear( 0, 0, 0 );
+
 	// create a new texture on the GPU
-	texture = new Texture( canvasWidth, canvasHeight );
-	texture->clear( 0, 0, 0 );
+	this->texture = new Texture( *this );
 }
 
 
 Pixelator::~Pixelator()
 {
-	delete texture;
-	glfwDestroyWindow( window );
+	delete this->texture;
+	glfwDestroyWindow( this->window );
 	glfwTerminate();
 }
 
@@ -80,7 +82,7 @@ void Pixelator::draw()
 {
 	// set viewport to current framebuffer size
 	int width = 0, height = 0;
-	glfwGetFramebufferSize( window, &width, &height );
+	glfwGetFramebufferSize( this->window, &width, &height );
 	glViewport( 0, 0, width, height );
 
 	// clear background
@@ -108,44 +110,32 @@ void Pixelator::draw()
 }
 
 
-void Pixelator::clear( unsigned char r, unsigned char g, unsigned char b, unsigned char a )
-{
-	texture->clear( r, g, b, a );
-}
-
-
-void Pixelator::setPixel( unsigned int x, unsigned int y, unsigned char r, unsigned char g, unsigned char b, unsigned char a )
-{
-	texture->setPixel( x, y, r, g, b, a );
-}
-
-
 void Pixelator::wait()
 {
 	// setup key callback to detect any key press
-	anyKeyPressed = false;
-	GLFWkeyfun oldKeyCallback = glfwSetKeyCallback( window, GLFWKeyCallback );
+	this->anyKeyPressed = false;
+	GLFWkeyfun oldKeyCallback = glfwSetKeyCallback( this->window, GLFWKeyCallback );
 
 	// update window and keep updating while the window should not close and no key is pressed
 	do {
 		update();
 		usleep( 1000 );
-	} while( !anyKeyPressed && !glfwWindowShouldClose( window ) );
+	} while( !anyKeyPressed && !glfwWindowShouldClose( this->window ) );
 
 	// restore previous key callback
-	glfwSetKeyCallback( window, oldKeyCallback );
-	anyKeyPressed = false;
+	glfwSetKeyCallback( this->window, oldKeyCallback );
+	this->anyKeyPressed = false;
 }
 
 
 void Pixelator::update()
 {
 	// upload texture to GPU
-	texture->update();
+	this->texture->update( *this );
 
 	// draw texture to window
-	draw();
-	glfwSwapBuffers( window );
+	this->draw();
+	glfwSwapBuffers( this->window );
 
 	// report GL errors
 	GLenum error = glGetError();
@@ -159,7 +149,15 @@ void Pixelator::update()
 
 void Pixelator::writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat )
 {
-	BitmapFile bmp( fileName, pixelFormat );
-	bmp.fromRGBAData( texture->getWidth(), texture->getHeight(), texture->getRGBAData() );
-	bmp.write();
+	BitmapFile::write( *this, fileName, pixelFormat );
+}
+
+
+void Pixelator::readBMP( const std::string & fileName )
+{
+	ImageBuffer * newImageBuffer = BitmapFile::load( fileName );
+	if( !newImageBuffer )
+		return;
+	*this = *newImageBuffer;
+	delete newImageBuffer;
 }

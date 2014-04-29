@@ -69,6 +69,7 @@ ImageBuffer * BitmapFile::load( const std::string & fileName )
 	std::ifstream file( fileName.c_str(), std::ifstream::binary );
 	if( !file.is_open() )
 	{
+		std::cerr << "File \"" << fileName << "\" could not be opened." << std::endl;
 		return NULL;
 	}
 

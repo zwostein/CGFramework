@@ -14,7 +14,7 @@
 class Pixelator : public ImageBuffer
 {
 public:
-	Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth = 64, unsigned int canvasHeight = 64 );
+	Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth, unsigned int canvasHeight );
 	~Pixelator();
 
 	Pixelator & operator=( const ImageBuffer & other ) { ImageBuffer::operator=(other); return *this; }

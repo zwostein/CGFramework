@@ -29,9 +29,9 @@ Then generate the Makefiles and compile the project:
 	make
 
 
-### Compiling on Windows using Visual Studio
+### Compiling on Windows using Visual Studio and Git Bash
 
-Change to the project's root directory.
+Open a Bash terminal in the project's root directory.
 
 Create and change into the build directory:
 
@@ -43,7 +43,7 @@ First clone the GLFW sources to the glfw directory of the project:
 	git submodule init
 	git submodule update
 
-Then generate the project files:
+Then generate the project files either using cmake-gui or manually:
 
 	cmake -G "Visual Studio 12" -DUSE_INTERNAL_GLFW=TRUE ..
 

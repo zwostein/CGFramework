@@ -14,7 +14,13 @@ if( USE_INTERNAL_GLFW )
 	include_directories( "glfw/include/" )
 endif()
 
-add_executable( cgframework main.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp ImageBuffer.cpp )
-target_link_libraries( cgframework glfw ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} )
+option( USE_INTERNAL_GLM "Use internal GLM copy instead of system installation" OFF )
+if( USE_INTERNAL_GLM )
+	include_directories( "glm/" )
+endif()
 
-install( TARGETS cgframework RUNTIME DESTINATION bin )
+add_executable( example_imagebuffer main.imagebuffer.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp ImageBuffer.cpp )
+target_link_libraries( example_imagebuffer glfw ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} )
+
+add_executable( example_modelviewer main.modelviewer.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp ImageBuffer.cpp )
+target_link_libraries( example_modelviewer glfw ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} )

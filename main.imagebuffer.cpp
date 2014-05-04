@@ -1,5 +1,6 @@
 #include "Pixelator.h"
 
+#include <iostream>
 #include <stdlib.h>
 
 
@@ -8,7 +9,7 @@ int main( int argc, char ** argv )
 	(void)argc;
 	(void)argv;
 
-	Pixelator p( 512, 512, 64, 64 );
+	Pixelator p( 512, 512, 128, 128 );
 
 	////////////////////////////////
 	// set some random pixels to a random color and write a bmp file

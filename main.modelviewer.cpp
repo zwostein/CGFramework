@@ -14,10 +14,15 @@
 
 
 #include "suzanne.h"
+#include "logo.h"
+#include "cube.h"
 
 
 typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
+
+
+glm::vec3 lightDirection(1,-1,0);
 
 
 template<typename T> T clamped( const T & value, const T & min, const T & max )
@@ -77,6 +82,7 @@ void drawLine( Pixelator & p, const glm::vec3 & a, const glm::vec3 & b, const gl
 
 void drawTriangle( Pixelator & p,
 	const glm::vec3 & a, const glm::vec3 & b, const glm::vec3 & c,
+	const glm::vec3 & an, const glm::vec3 & bn, const glm::vec3 & cn,
 	const glm::vec4 & ac, const glm::vec4 & bc, const glm::vec4 & cc )
 {
 	// get the bounding box of the triangle
@@ -109,14 +115,25 @@ void drawTriangle( Pixelator & p,
 				glm::vec3 position(
 					x, y, a.z*u + b.z*v + c.z*w
 				);
-				// interpolated color
-				glm::vec4 color(
+				// interpolated normal
+				glm::vec3 normal(
+					an.x * u + bn.x * v + cn.x * w,
+					an.y * u + bn.y * v + cn.y * w,
+					an.z * u + bn.z * v + cn.z * w
+				);
+				// lighting color
+				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
+//				d = clamped( d, 0.0f, 1.0f );
+				d = d * 0.5f + 0.5f;
+				glm::vec4 diffuse( d, d, d, 1.0f );
+				// interpolated vertex color
+				glm::vec4 vcolor(
 					ac.r * u + bc.r * v + cc.r * w,
 					ac.g * u + bc.g * v + cc.g * w,
 					ac.b * u + bc.b * v + cc.b * w,
 					ac.a * u + bc.a * v + cc.a * w
 				);
-				setPixel( p, position, color );
+				setPixel( p, position, vcolor * diffuse );
 			}
 		}
 	}
@@ -129,6 +146,16 @@ glm::vec3 getVertex( const BlenderVuforiaExportObject & o, unsigned int index )
 		o.vertices[o.indices[index]*3],
 		o.vertices[o.indices[index]*3+1],
 		o.vertices[o.indices[index]*3+2]
+	);
+}
+
+
+glm::vec3 getNormal( const BlenderVuforiaExportObject & o, unsigned int index )
+{
+	return glm::vec3(
+		o.normals[o.indices[index]*3],
+		o.normals[o.indices[index]*3+1],
+		o.normals[o.indices[index]*3+2]
 	);
 }
 
@@ -192,7 +219,12 @@ void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const
 		glm::vec4 col1( getColor( o, i+1 ), 1.0f );
 		glm::vec4 col2( getColor( o, i+2 ), 1.0f );
 
-		drawTriangle( p, w0, w1, w2, col0, col1, col2 );
+		// vertex normals
+		glm::vec3 n0( getNormal( o, i ) );
+		glm::vec3 n1( getNormal( o, i+1 ) );
+		glm::vec3 n2( getNormal( o, i+2 ) );
+
+		drawTriangle( p, w0, w1, w2, n0, n1, n2, col0, col1, col2 );
 	}
 }
 
@@ -318,11 +350,18 @@ int main( int argc, char ** argv )
 			200.0f                 // far
 		);
 
+		static float angle = 0.0f;
+		angle += 0.01f;
+		lightDirection.x = sin(angle);
+		lightDirection.y = cos(angle);
+
 		// clear color and depth buffer
 		clear( p );
 
 		// draw model
+//		rasterizeObject( p, cubeObject, view * model, projection );
 		rasterizeObject( p, suzanneObject, view * model, projection );
+//		rasterizeObject( p, waveObject, view * model, projection );
 
 		// draw coordinate markers
 		rasterizeLine( p, glm::vec3(0,0,0), glm::vec3(60,0,0), glm::vec4(1,1,1,1), glm::vec4(1,0,0,1), view * model, projection );

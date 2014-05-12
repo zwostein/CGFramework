@@ -22,7 +22,9 @@ typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
 
 
-glm::vec3 lightDirection(1,-1,0);
+glm::vec3 lightDirection(1.0f,-1.0f,0.0f);
+glm::vec4 lightColor(1.0f,1.0f,1.0f,1.0f);
+glm::vec4 lightAmbientColor(0.01f,0.01f,0.01f,0.0f);
 
 
 template<typename T> T clamped( const T & value, const T & min, const T & max )
@@ -39,7 +41,8 @@ void clear( Pixelator & p, const glm::vec4 & color = glm::vec4(0,0,0,0), float d
 {
 	for( unsigned int i = 0; i < p.getWidth() * p.getHeight(); ++i )
 		zBuffer[ i ] = (zBuffer_t)(depth * (float)std::numeric_limits<zBuffer_t>::max());
-	p.clear( (unsigned char)(color.r*255.0f), (unsigned char)(color.g*255.0f), (unsigned char)(color.b*255.0f), (unsigned char)(color.a*255.0f) );
+	glm::vec4 c( clamped(color.r,0.0f,1.0f), clamped(color.g,0.0f,1.0f), clamped(color.b,0.0f,1.0f), clamped(color.a,0.0f,1.0f) );
+	p.clear( (unsigned char)(c.r*255.0f), (unsigned char)(c.g*255.0f), (unsigned char)(c.b*255.0f), (unsigned char)(c.a*255.0f) );
 }
 
 
@@ -57,7 +60,8 @@ void setPixel( Pixelator & p, const glm::vec3 & position, const glm::vec4 & colo
 	if( newZ < zBuffer[ index ] )
 	{
 		zBuffer[ index ] = newZ;
-		p.setPixel( (unsigned int)position.x, (unsigned int)position.y, (unsigned char)(color.r*255.0f), (unsigned char)(color.g*255.0f), (unsigned char)(color.b*255.0f), (unsigned char)(color.a*255.0f) );
+		glm::vec4 c( clamped(color.r,0.0f,1.0f), clamped(color.g,0.0f,1.0f), clamped(color.b,0.0f,1.0f), clamped(color.a,0.0f,1.0f) );
+		p.setPixel( (unsigned int)position.x, (unsigned int)position.y, (unsigned char)(c.r*255.0f), (unsigned char)(c.g*255.0f), (unsigned char)(c.b*255.0f), (unsigned char)(c.a*255.0f) );
 	}
 }
 
@@ -123,9 +127,9 @@ void drawTriangle( Pixelator & p,
 				);
 				// lighting color
 				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
-//				d = clamped( d, 0.0f, 1.0f );
-				d = d * 0.5f + 0.5f;
-				glm::vec4 diffuse( d, d, d, 1.0f );
+//				d = clamped( d, 0.0f, 1.0f );	// "correct" diffuse lighting - if pixel is facing away from light, it is black
+				d = d * 0.5f + 0.5f;	// alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
+				glm::vec4 diffuse = lightColor * d;
 				// interpolated vertex color
 				glm::vec4 vcolor(
 					ac.r * u + bc.r * v + cc.r * w,
@@ -133,7 +137,8 @@ void drawTriangle( Pixelator & p,
 					ac.b * u + bc.b * v + cc.b * w,
 					ac.a * u + bc.a * v + cc.a * w
 				);
-				setPixel( p, position, vcolor * diffuse );
+				// set pixel to calculated lighting color
+				setPixel( p, position, vcolor * diffuse + lightAmbientColor );
 			}
 		}
 	}
@@ -352,8 +357,13 @@ int main( int argc, char ** argv )
 
 		static float angle = 0.0f;
 		angle += 0.01f;
+		// let light circle around model
 		lightDirection.x = sin(angle);
 		lightDirection.y = cos(angle);
+		// change light color a bit
+		lightColor.r = sin(angle * 2.0f) * 0.25f + 0.75f;
+		lightColor.g = sin(angle * 2.5f) * 0.25f + 0.75f;
+		lightColor.b = sin(angle * 2.75f) * 0.25f + 0.75f;
 
 		// clear color and depth buffer
 		clear( p );

@@ -9,23 +9,23 @@ Create and change into the build directory:
 	mkdir build
 	cd build
 
-#### Using the system installation of GLFW
+#### Using the system installation of GLFW/GLM
 
 Generate Makefiles and compile the project:
 
 	cmake ..
 	make
 
-#### Using an internal copy of GLFW
+#### Using an internal copy of GLFW and/or GLM
 
-First clone the GLFW sources to the glfw directory of the project:
+First clone the library sources into the the project directory:
 
 	git submodule init
 	git submodule update
 
 Then generate the Makefiles and compile the project:
 
-	cmake -DUSE_INTERNAL_GLFW=TRUE ..
+	cmake -DUSE_INTERNAL_GLFW=TRUE -DUSE_INTERNAL_GLM=TRUE ..
 	make
 
 
@@ -38,14 +38,14 @@ Create and change into the build directory:
 	mkdir build
 	cd build
 
-First clone the GLFW sources to the glfw directory of the project:
+Clone the library sources into the the project directory:
 
 	git submodule init
 	git submodule update
 
 Then generate the project files either using cmake-gui or manually:
 
-	cmake -G "Visual Studio 12" -DUSE_INTERNAL_GLFW=TRUE ..
+	cmake -G "Visual Studio 12" -DUSE_INTERNAL_GLFW=TRUE -DUSE_INTERNAL_GLM=TRUE ..
 
 Open the generated "Solution" file.
 In the "Solution Explorer" right-click on the "Solution" and select "properties".

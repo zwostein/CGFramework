@@ -18,31 +18,40 @@
 #include "cube.h"
 
 
+struct Vertex
+{
+	glm::vec3 position;
+	glm::vec3 color;
+	glm::vec3 normal;
+};
+
+
+struct Face
+{
+	Vertex a;
+	Vertex b;
+	Vertex c;
+};
+
+
 typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
 
 
-glm::vec3 lightDirection(1.0f,-1.0f,0.0f);
-glm::vec4 lightColor(1.0f,1.0f,1.0f,1.0f);
-glm::vec4 lightAmbientColor(0.01f,0.01f,0.01f,0.0f);
+glm::vec3 lightAmbientColor( 0.01f, 0.01f, 0.01f );
+glm::vec3    lightDirection( 1.0f, -1.0f,  0.0f );
+glm::vec3        lightColor( 1.0f,  1.0f,  1.0f );
 
 
-template<typename T> T clamped( const T & value, const T & min, const T & max )
-{
-	if( value < min )
-		return min;
-	if( value > max )
-		return max;
-	return value;
-}
-
-
-void clear( Pixelator & p, const glm::vec4 & color = glm::vec4(0,0,0,0), float depth = 1.0f )
+void clear( Pixelator & p, const glm::vec4 & color = glm::vec4( 0, 0, 0, 0 ), float depth = 1.0f )
 {
 	for( unsigned int i = 0; i < p.getWidth() * p.getHeight(); ++i )
 		zBuffer[ i ] = (zBuffer_t)(depth * (float)std::numeric_limits<zBuffer_t>::max());
-	glm::vec4 c( clamped(color.r,0.0f,1.0f), clamped(color.g,0.0f,1.0f), clamped(color.b,0.0f,1.0f), clamped(color.a,0.0f,1.0f) );
-	p.clear( (unsigned char)(c.r*255.0f), (unsigned char)(c.g*255.0f), (unsigned char)(c.b*255.0f), (unsigned char)(c.a*255.0f) );
+	glm::vec4 clampedColor = glm::clamp( color, 0.0f, 1.0f ) * 255.0f;
+	p.clear( (unsigned char)clampedColor.r,
+		 (unsigned char)clampedColor.g,
+		 (unsigned char)clampedColor.b,
+		 (unsigned char)clampedColor.a );
 }
 
 
@@ -60,54 +69,61 @@ void setPixel( Pixelator & p, const glm::vec3 & position, const glm::vec4 & colo
 	if( newZ < zBuffer[ index ] )
 	{
 		zBuffer[ index ] = newZ;
-		glm::vec4 c( clamped(color.r,0.0f,1.0f), clamped(color.g,0.0f,1.0f), clamped(color.b,0.0f,1.0f), clamped(color.a,0.0f,1.0f) );
-		p.setPixel( (unsigned int)position.x, (unsigned int)position.y, (unsigned char)(c.r*255.0f), (unsigned char)(c.g*255.0f), (unsigned char)(c.b*255.0f), (unsigned char)(c.a*255.0f) );
+		glm::vec4 clampedColor = glm::clamp( color, 0.0f, 1.0f ) * 255.0f;
+		p.setPixel( (unsigned int)position.x,
+			    (unsigned int)position.y,
+			    (unsigned char)clampedColor.r,
+			    (unsigned char)clampedColor.g,
+			    (unsigned char)clampedColor.b,
+			    (unsigned char)clampedColor.a );
 	}
 }
 
 
-void drawLine( Pixelator & p, const glm::vec3 & a, const glm::vec3 & b, const glm::vec4 & ac, const glm::vec4 & bc )
+void drawLine( Pixelator & p, const glm::vec3 & a, const glm::vec3 & b, const glm::vec3 & ac, const glm::vec3 & bc )
 {
 	glm::vec3 delta_a_b = b - a;
-	glm::vec4 delta_ac_bc = bc - ac;
+	glm::vec3 delta_ac_bc = bc - ac;
 	float steps = std::max( fabs(delta_a_b.x), fabs(delta_a_b.y) );
 	glm::vec3 inc_a_b( delta_a_b.x / steps, delta_a_b.y / steps, delta_a_b.z / steps );
-	glm::vec4 inc_ac_bc( delta_ac_bc.r / steps, delta_ac_bc.g / steps, delta_ac_bc.b / steps, delta_ac_bc.a / steps );
+	glm::vec3 inc_ac_bc( delta_ac_bc.r / steps, delta_ac_bc.g / steps, delta_ac_bc.b / steps );
 	glm::vec3 current_a_b = a;
-	glm::vec4 current_ac_bc = ac;
+	glm::vec3 current_ac_bc = ac;
 	for( int i=0; i<steps; i++ )
 	{
-		setPixel( p, current_a_b, current_ac_bc );
+		setPixel( p, current_a_b, glm::vec4( current_ac_bc, 1.0f ) );
 		current_a_b += inc_a_b;
 		current_ac_bc += inc_ac_bc;
 	}
 }
 
 
-void drawTriangle( Pixelator & p,
-	const glm::vec3 & a, const glm::vec3 & b, const glm::vec3 & c,
-	const glm::vec3 & an, const glm::vec3 & bn, const glm::vec3 & cn,
-	const glm::vec4 & ac, const glm::vec4 & bc, const glm::vec4 & cc )
+void drawTriangle( Pixelator & p, const Face & tf )
 {
 	// get the bounding box of the triangle
-	int maxX = (int)std::max( a.x, std::max( b.x, c.x ) );
-	int minX = (int)std::min( a.x, std::min( b.x, c.x ) );
-	int maxY = (int)std::max( a.y, std::max( b.y, c.y ) );
-	int minY = (int)std::min( a.y, std::min( b.y, c.y ) );
+	int maxX = (int)std::max( tf.a.position.x, std::max( tf.b.position.x, tf.c.position.x ) );
+	int minX = (int)std::min( tf.a.position.x, std::min( tf.b.position.x, tf.c.position.x ) );
+	int maxY = (int)std::max( tf.a.position.y, std::max( tf.b.position.y, tf.c.position.y ) );
+	int minY = (int)std::min( tf.a.position.y, std::min( tf.b.position.y, tf.c.position.y ) );
 
 	// clamp bounding box to viewport size
-	maxX = clamped<int>( maxX, 0, p.getWidth()-1 );
-	minX = clamped<int>( minX, 0, p.getWidth()-1 );
-	maxY = clamped<int>( maxY, 0, p.getHeight()-1 );
-	minY = clamped<int>( minY, 0, p.getHeight()-1 );
+	maxX = glm::clamp<int>( maxX, 0, p.getWidth()-1 );
+	minX = glm::clamp<int>( minX, 0, p.getWidth()-1 );
+	maxY = glm::clamp<int>( maxY, 0, p.getHeight()-1 );
+	minY = glm::clamp<int>( minY, 0, p.getHeight()-1 );
 
 	for( int x = minX; x <= maxX; x++ )
 	{
 		for( int y = minY; y <= maxY; y++ )
 		{
-			float den = 1.0f / ( (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y) );
-			float u = ( (b.y - c.y) * ((float)x - c.x) + (c.x - b.x) * ((float)y - c.y) ) * den;
-			float v = ( (c.y - a.y) * ((float)x - c.x) + (a.x - c.x) * ((float)y - c.y) ) * den;
+			float den = 1.0f / ( (tf.b.position.y - tf.c.position.y) * (tf.a.position.x - tf.c.position.x)
+			                   + (tf.c.position.x - tf.b.position.x) * (tf.a.position.y - tf.c.position.y) );
+
+			float u = ( (tf.b.position.y - tf.c.position.y) * ((float)x - tf.c.position.x)
+			          + (tf.c.position.x - tf.b.position.x) * ((float)y - tf.c.position.y) ) * den;
+
+			float v = ( (tf.c.position.y - tf.a.position.y) * ((float)x - tf.c.position.x)
+			          + (tf.a.position.x - tf.c.position.x) * ((float)y - tf.c.position.y) ) * den;
 
 			float w = 1.0f - u - v;
 
@@ -117,61 +133,67 @@ void drawTriangle( Pixelator & p,
 			{ // inside triangle - calculate interpolated vertex attributes at x, y
 				// current position and interpolated z value
 				glm::vec3 position(
-					x, y, a.z*u + b.z*v + c.z*w
+					x,
+					y,
+					tf.a.position.z*u + tf.b.position.z*v + tf.c.position.z*w
 				);
+
 				// interpolated normal
 				glm::vec3 normal(
-					an.x * u + bn.x * v + cn.x * w,
-					an.y * u + bn.y * v + cn.y * w,
-					an.z * u + bn.z * v + cn.z * w
+					tf.a.normal.x * u + tf.b.normal.x * v + tf.c.normal.x * w,
+					tf.a.normal.y * u + tf.b.normal.y * v + tf.c.normal.y * w,
+					tf.a.normal.z * u + tf.b.normal.z * v + tf.c.normal.z * w
 				);
-				// lighting color
+
+				// diffuse lighting color
 				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
 //				d = clamped( d, 0.0f, 1.0f );	// "correct" diffuse lighting - if pixel is facing away from light, it is black
 				d = d * 0.5f + 0.5f;	// alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
-				glm::vec4 diffuse = lightColor * d;
+				glm::vec3 diffuse = lightColor * d;
+
 				// interpolated vertex color
-				glm::vec4 vcolor(
-					ac.r * u + bc.r * v + cc.r * w,
-					ac.g * u + bc.g * v + cc.g * w,
-					ac.b * u + bc.b * v + cc.b * w,
-					ac.a * u + bc.a * v + cc.a * w
+				glm::vec3 vcolor(
+					tf.a.color.r * u + tf.b.color.r * v + tf.c.color.r * w,
+					tf.a.color.g * u + tf.b.color.g * v + tf.c.color.g * w,
+					tf.a.color.b * u + tf.b.color.b * v + tf.c.color.b * w
 				);
-				// set pixel to calculated lighting color
-				setPixel( p, position, vcolor * diffuse + lightAmbientColor );
+
+				setPixel( p, position, glm::vec4( vcolor * diffuse + lightAmbientColor, 1.0f ) );
 			}
 		}
 	}
 }
 
 
-glm::vec3 getVertex( const BlenderVuforiaExportObject & o, unsigned int index )
+Vertex getVertex( const BlenderVuforiaExportObject & o, unsigned int index )
 {
-	return glm::vec3(
-		o.vertices[o.indices[index]*3],
-		o.vertices[o.indices[index]*3+1],
-		o.vertices[o.indices[index]*3+2]
-	);
+	Vertex v;
+	v.position = glm::vec3( o.vertices[o.indices[index]*3],
+	                        o.vertices[o.indices[index]*3+1],
+	                        o.vertices[o.indices[index]*3+2] );
+	v.normal = glm::vec3( o.normals[o.indices[index]*3],
+	                        o.normals[o.indices[index]*3+1],
+	                        o.normals[o.indices[index]*3+2] );
+	v.color = glm::vec3( o.colors[o.indices[index]*3],
+	                        o.colors[o.indices[index]*3+1],
+	                        o.colors[o.indices[index]*3+2] );
+	return v;
 }
 
 
-glm::vec3 getNormal( const BlenderVuforiaExportObject & o, unsigned int index )
+Face getFace( const BlenderVuforiaExportObject & o, unsigned int index )
 {
-	return glm::vec3(
-		o.normals[o.indices[index]*3],
-		o.normals[o.indices[index]*3+1],
-		o.normals[o.indices[index]*3+2]
-	);
+	Face f;
+	f.a = getVertex( o, index*3 );
+	f.b = getVertex( o, index*3+1 );
+	f.c = getVertex( o, index*3+2 );
+	return f;
 }
 
 
-glm::vec3 getColor( const BlenderVuforiaExportObject & o, unsigned int index )
+unsigned int getNumFaces( const BlenderVuforiaExportObject & o )
 {
-	return glm::vec3(
-		o.colors[o.indices[index]*3],
-		o.colors[o.indices[index]*3+1],
-		o.colors[o.indices[index]*3+2]
-	);
+	return o.numIndices / 3;
 }
 
 
@@ -181,8 +203,14 @@ glm::vec3 cc2ndc( const glm::vec4 & cc )
 }
 
 
-glm::vec3 ndc2wc( const glm::vec3 & ndc, float viewportX, float viewportY, float viewportWidth, float viewportHeight, float depthNear, float depthFar )
+glm::vec3 ndc2wc( const glm::vec3 & ndc, const Pixelator & p )
 {
+	float viewportX = 0.0f;
+	float viewportY = 0.0f;
+	float viewportWidth = (float)p.getWidth();
+	float viewportHeight = (float)p.getHeight();
+	float depthNear = 0.0f;
+	float depthFar = 1.0f;
 	return glm::vec3(
 		(viewportWidth *ndc.x)/2.0f + (viewportX + viewportWidth /2.0f),
 		(viewportHeight*ndc.y)/2.0f + (viewportY + viewportHeight/2.0f),
@@ -191,45 +219,42 @@ glm::vec3 ndc2wc( const glm::vec3 & ndc, float viewportX, float viewportY, float
 }
 
 
-void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const glm::mat4 & modelview, const glm::mat4 & projection )
+void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const glm::mat4 & mvp )
 {
-	// calculate model-view-projection matrix and add object specific transformation (usually identity)
-	glm::mat4 mvp = projection * modelview * glm::make_mat4( o.transform );
+	// add object specific transformation (usually identity)
+	const glm::mat4 mymvp = mvp * glm::make_mat4( o.transform );
 
-	// rasterize object indices as triangles
-	for( unsigned int i = 0; i<o.numIndices; i+=3 )
+	// rasterize each triangle face
+	for( unsigned int i = 0; i<getNumFaces( o ); i++ )
 	{
+		Face f = getFace( o, i );
+
 		// homogenous vertices
-		glm::vec4 v0( getVertex( o, i ), 1.0f );
-		glm::vec4 v1( getVertex( o, i+1 ), 1.0f );
-		glm::vec4 v2( getVertex( o, i+2 ), 1.0f );
+		glm::vec4 va( f.a.position, 1.0f );
+		glm::vec4 vb( f.b.position, 1.0f );
+		glm::vec4 vc( f.c.position, 1.0f );
 
 		// to clip coordinates
-		glm::vec4 c0 = mvp * v0;
-		glm::vec4 c1 = mvp * v1;
-		glm::vec4 c2 = mvp * v2;
+		glm::vec4 ca = mymvp * va;
+		glm::vec4 cb = mymvp * vb;
+		glm::vec4 cc = mymvp * vc;
 
 		// to device coordinates
-		glm::vec3 d0 = cc2ndc( c0 );
-		glm::vec3 d1 = cc2ndc( c1 );
-		glm::vec3 d2 = cc2ndc( c2 );
+		glm::vec3 da = cc2ndc( ca );
+		glm::vec3 db = cc2ndc( cb );
+		glm::vec3 dc = cc2ndc( cc );
 
 		// to window coordinates
-		glm::vec3 w0 = ndc2wc( d0, 0.0f, 0.0f, (float)p.getWidth(), (float)p.getHeight(), 0.0f, 1.0f );
-		glm::vec3 w1 = ndc2wc( d1, 0.0f, 0.0f, (float)p.getWidth(), (float)p.getHeight(), 0.0f, 1.0f );
-		glm::vec3 w2 = ndc2wc( d2, 0.0f, 0.0f, (float)p.getWidth(), (float)p.getHeight(), 0.0f, 1.0f );
+		glm::vec3 wa = ndc2wc( da, p );
+		glm::vec3 wb = ndc2wc( db, p );
+		glm::vec3 wc = ndc2wc( dc, p );
 
-		// vertex colors
-		glm::vec4 col0( getColor( o, i ), 1.0f );
-		glm::vec4 col1( getColor( o, i+1 ), 1.0f );
-		glm::vec4 col2( getColor( o, i+2 ), 1.0f );
+		// write back transformed coordinates to face
+		f.a.position = wa;
+		f.b.position = wb;
+		f.c.position = wc;
 
-		// vertex normals
-		glm::vec3 n0( getNormal( o, i ) );
-		glm::vec3 n1( getNormal( o, i+1 ) );
-		glm::vec3 n2( getNormal( o, i+2 ) );
-
-		drawTriangle( p, w0, w1, w2, n0, n1, n2, col0, col1, col2 );
+		drawTriangle( p, f );
 	}
 }
 
@@ -237,30 +262,27 @@ void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const
 void rasterizeLine( Pixelator & p,
 	const glm::vec3 & a,
 	const glm::vec3 & b,
-	const glm::vec4 & ac,
-	const glm::vec4 & bc,
-	const glm::mat4 & modelview, const glm::mat4 & projection )
+	const glm::vec3 & ac,
+	const glm::vec3 & bc,
+	const glm::mat4 & mvp )
 {
-	// calculate model-view-projection matrix
-	glm::mat4 mvp = projection * modelview;
-
 	// homogenous vertices
-	glm::vec4 v0( a, 1.0f );
-	glm::vec4 v1( b, 1.0f );
+	glm::vec4 va( a, 1.0f );
+	glm::vec4 vb( b, 1.0f );
 
 	// to clip coordinates
-	glm::vec4 c0 = mvp * v0;
-	glm::vec4 c1 = mvp * v1;
+	glm::vec4 ca = mvp * va;
+	glm::vec4 cb = mvp * vb;
 
 	// to device coordinates
-	glm::vec3 d0 = cc2ndc( c0 );
-	glm::vec3 d1 = cc2ndc( c1 );
+	glm::vec3 da = cc2ndc( ca );
+	glm::vec3 db = cc2ndc( cb );
 
 	// to window coordinates
-	glm::vec3 w0 = ndc2wc( d0, 0.0f, 0.0f, (float)p.getWidth(), (float)p.getHeight(), 0.0f, 1.0f );
-	glm::vec3 w1 = ndc2wc( d1, 0.0f, 0.0f, (float)p.getWidth(), (float)p.getHeight(), 0.0f, 1.0f );
+	glm::vec3 wa = ndc2wc( da, p );
+	glm::vec3 wb = ndc2wc( db, p );
 
-	drawLine( p, w0, w1, ac, bc );
+	drawLine( p, wa, wb, ac, bc );
 }
 
 
@@ -349,34 +371,37 @@ int main( int argc, char ** argv )
 		);
 
 		glm::mat4 projection = glm::perspective(
-			glm::radians<float>(fov), // FOV
-			1.0f,                    // aspect ratio
-			1.0f,                   // near
-			200.0f                 // far
+			glm::radians<float>( fov ), // FOV
+			1.0f,                      // aspect ratio
+			1.0f,                     // near
+			200.0f                   // far
 		);
+
+		// final model view projection matrix
+		glm::mat4 mvp = projection * view * model;
 
 		static float angle = 0.0f;
 		angle += 0.01f;
 		// let light circle around model
-		lightDirection.x = sin(angle);
-		lightDirection.y = cos(angle);
+		lightDirection.x = sin( angle );
+		lightDirection.y = cos( angle );
 		// change light color a bit
-		lightColor.r = sin(angle * 2.0f) * 0.25f + 0.75f;
-		lightColor.g = sin(angle * 2.5f) * 0.25f + 0.75f;
-		lightColor.b = sin(angle * 2.75f) * 0.25f + 0.75f;
+		lightColor.r = sin( angle * 2.0f ) * 0.25f + 0.75f;
+		lightColor.g = sin( angle * 2.5f ) * 0.25f + 0.75f;
+		lightColor.b = sin( angle * 2.75f ) * 0.25f + 0.75f;
 
 		// clear color and depth buffer
 		clear( p );
 
 		// draw model
-//		rasterizeObject( p, cubeObject, view * model, projection );
-		rasterizeObject( p, suzanneObject, view * model, projection );
-//		rasterizeObject( p, waveObject, view * model, projection );
+//		rasterizeObject( p, cubeObject, mvp );
+		rasterizeObject( p, suzanneObject, mvp );
+//		rasterizeObject( p, waveObject, mvp );
 
 		// draw coordinate markers
-		rasterizeLine( p, glm::vec3(0,0,0), glm::vec3(60,0,0), glm::vec4(1,1,1,1), glm::vec4(1,0,0,1), view * model, projection );
-		rasterizeLine( p, glm::vec3(0,0,0), glm::vec3(0,60,0), glm::vec4(1,1,1,1), glm::vec4(0,1,0,1), view * model, projection );
-		rasterizeLine( p, glm::vec3(0,0,0), glm::vec3(0,0,60), glm::vec4(1,1,1,1), glm::vec4(0,0,1,1), view * model, projection );
+		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3( 60,  0,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 1, 0, 0 ), mvp );
+		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3(  0, 60,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 1, 0 ), mvp );
+		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3(  0,  0, 60 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 0, 1 ), mvp );
 
 		p.update();
 	}

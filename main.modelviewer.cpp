@@ -25,7 +25,6 @@ struct Vertex
 	glm::vec3 normal;
 };
 
-
 struct Face
 {
 	Vertex a;
@@ -33,10 +32,8 @@ struct Face
 	Vertex c;
 };
 
-
 typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
-
 
 glm::vec3 lightAmbientColor( 0.01f, 0.01f, 0.01f );
 glm::vec3    lightDirection( 1.0f, -1.0f,  0.0f );
@@ -129,7 +126,7 @@ void drawTriangle( Pixelator & p, const Face & tf )
 
 			if( (u >= -std::numeric_limits<float>::epsilon()) &&
 			    (v >= -std::numeric_limits<float>::epsilon()) &&
-			    (u + v <= 1.0 + std::numeric_limits<float>::epsilon()) )
+			    (u + v <= 1.0f + std::numeric_limits<float>::epsilon()) )
 			{ // inside triangle - calculate interpolated vertex attributes at x, y
 				// current position and interpolated z value
 				glm::vec3 position(
@@ -147,8 +144,8 @@ void drawTriangle( Pixelator & p, const Face & tf )
 
 				// diffuse lighting color
 				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
-//				d = clamped( d, 0.0f, 1.0f );	// "correct" diffuse lighting - if pixel is facing away from light, it is black
-				d = d * 0.5f + 0.5f;	// alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
+//				d = clamped( d, 0.0f, 1.0f ); // "correct" diffuse lighting - if pixel is facing away from light, it is black
+				d = d * 0.5f + 0.5f; // alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
 				glm::vec3 diffuse = lightColor * d;
 
 				// interpolated vertex color
@@ -212,14 +209,14 @@ glm::vec3 ndc2wc( const glm::vec3 & ndc, const Pixelator & p )
 	float depthNear = 0.0f;
 	float depthFar = 1.0f;
 	return glm::vec3(
-		(viewportWidth *ndc.x)/2.0f + (viewportX + viewportWidth /2.0f),
-		(viewportHeight*ndc.y)/2.0f + (viewportY + viewportHeight/2.0f),
-		((depthFar-depthNear)*ndc.z)/2.0f + (depthFar+depthNear)/2.0f
+		( viewportWidth * ndc.x ) / 2.0f + ( viewportX + viewportWidth / 2.0f ),
+		( viewportHeight * ndc.y ) / 2.0f + ( viewportY + viewportHeight / 2.0f ),
+		( (depthFar-depthNear) * ndc.z ) / 2.0f + (depthFar+depthNear) / 2.0f
 	);
 }
 
 
-void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const glm::mat4 & mvp )
+void rasterizeObject( Pixelator & p, const glm::mat4 & mvp, const BlenderVuforiaExportObject & o )
 {
 	// add object specific transformation (usually identity)
 	const glm::mat4 mymvp = mvp * glm::make_mat4( o.transform );
@@ -259,12 +256,9 @@ void rasterizeObject( Pixelator & p, const BlenderVuforiaExportObject & o, const
 }
 
 
-void rasterizeLine( Pixelator & p,
-	const glm::vec3 & a,
-	const glm::vec3 & b,
-	const glm::vec3 & ac,
-	const glm::vec3 & bc,
-	const glm::mat4 & mvp )
+void rasterizeLine( Pixelator & p, const glm::mat4 & mvp,
+                    const glm::vec3 & a, const glm::vec3 & b,
+                    const glm::vec3 & ac, const glm::vec3 & bc )
 {
 	// homogenous vertices
 	glm::vec4 va( a, 1.0f );
@@ -296,11 +290,11 @@ int main( int argc, char ** argv )
 
 	while( !glfwWindowShouldClose( p.getWindow() ) )
 	{
-		static float alpha = 0.0f;
-		static float beta = 0.0f;
-		static float distance = 80.0f;
-		static float fov = 90.0f;
-		static float res = 6;
+		static float alpha = 0.0f;       // left mouse button x-axis
+		static float beta = 0.0f;       // left mouse button y-axis
+		static float distance = 80.0f; // right mouse button y-axis
+		static float fov = 90.0f;     // right mouse button x-axis
+		static float res = 6;        // middle mouse button <-axis
 
 
 		////////////////////////////////
@@ -309,34 +303,34 @@ int main( int argc, char ** argv )
 		double mouseX, mouseY;
 		glfwGetCursorPos( p.getWindow(), &mouseX, &mouseY );
 
-		static double lastMouseXDownLeft=0, lastMouseYDownLeft=0;
-		static bool lastButtonLeft = false;
-		if( glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_LEFT ) && !lastButtonLeft )
+		static double lastMouseXDown=0, lastMouseYDown=0;
+		static bool lastButton = false;
+		if( glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_LEFT ) && !lastButton )
 		{
-			lastButtonLeft = true;
-			lastMouseXDownLeft = mouseX;
-			lastMouseYDownLeft = mouseY;
+			lastButton = true;
+			lastMouseXDown = mouseX;
+			lastMouseYDown = mouseY;
 		}
 		else if( !glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_LEFT ) )
-			lastButtonLeft = false;
+			lastButton = false;
 
 		if( glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_LEFT ) )
 		{
-			alpha += -(float)(lastMouseXDownLeft - mouseX) / 200.0f;
-			beta += -(float)(lastMouseYDownLeft - mouseY) / 200.0f;
+			alpha += -(float)(lastMouseXDown - mouseX) / 200.0f;
+			beta += -(float)(lastMouseYDown - mouseY) / 200.0f;
 		}
 
 		if( glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_RIGHT ) )
 		{
-			fov += -(float)(lastMouseXDownLeft - mouseX) / 10.0f;
-			distance += -(float)(lastMouseYDownLeft - mouseY) / 10.0f;
+			fov += -(float)(lastMouseXDown - mouseX) / 10.0f;
+			distance += -(float)(lastMouseYDown - mouseY) / 10.0f;
 			std::cout << "FOV: " << fov << "\tDistance: " << distance << std::endl;
 		}
 
 		static int lastRes = 6;
 		if( glfwGetMouseButton( p.getWindow(), GLFW_MOUSE_BUTTON_MIDDLE ) )
 		{
-			res += -(float)(lastMouseYDownLeft - mouseY) / 80.0f;
+			res += -(float)(lastMouseYDown - mouseY) / 80.0f;
 		}
 
 		if( res < 4 )
@@ -353,8 +347,8 @@ int main( int argc, char ** argv )
 			std::cout << "Resolution: " << resolution << "x" << resolution << std::endl;
 		}
 
-		lastMouseXDownLeft = mouseX;
-		lastMouseYDownLeft = mouseY;
+		lastMouseXDown = mouseX;
+		lastMouseYDown = mouseY;
 
 
 		////////////////////////////////
@@ -394,14 +388,14 @@ int main( int argc, char ** argv )
 		clear( p );
 
 		// draw model
-//		rasterizeObject( p, cubeObject, mvp );
-		rasterizeObject( p, suzanneObject, mvp );
-//		rasterizeObject( p, waveObject, mvp );
+//		rasterizeObject( p, mvp, cubeObject );
+		rasterizeObject( p, mvp , suzanneObject);
+//		rasterizeObject( p, mvp, waveObject );
 
 		// draw coordinate markers
-		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3( 60,  0,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 1, 0, 0 ), mvp );
-		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3(  0, 60,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 1, 0 ), mvp );
-		rasterizeLine( p, glm::vec3( 0, 0, 0 ), glm::vec3(  0,  0, 60 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 0, 1 ), mvp );
+		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3( 60,  0,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 1, 0, 0 ) );
+		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3(  0, 60,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 1, 0 ) );
+		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3(  0,  0, 60 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 0, 1 ) );
 
 		p.update();
 	}

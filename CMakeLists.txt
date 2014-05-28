@@ -24,6 +24,11 @@ if( USE_INTERNAL_GLM )
 	include_directories( "glm/" )
 endif()
 
+option( HEADLESS "Disables window creation for headless operation" OFF )
+if( HEADLESS )
+	add_definitions( -DHEADLESS )
+endif()
+
 add_executable( example_imagebuffer main.imagebuffer.cpp Pixelator.cpp Texture.cpp BitmapFile.cpp ImageBuffer.cpp )
 target_link_libraries( example_imagebuffer glfw ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} )
 

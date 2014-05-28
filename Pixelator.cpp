@@ -43,6 +43,7 @@ void Pixelator::GLFWKeyCallback( GLFWwindow * window, int key, int scancode, int
 
 Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsigned int canvasWidth, unsigned int canvasHeight ) : ImageBuffer( canvasWidth, canvasHeight )
 {
+#ifndef HEADLESS
 	// initialize GLFW
 	glfwSetErrorCallback( GLFWErrorCallback );
 	if( !glfwInit() )
@@ -65,6 +66,7 @@ Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsig
 
 	// enable vsync
 	glfwSwapInterval( 1 );
+#endif
 
 	// set image to black initially
 	this->clear( 0, 0, 0 );
@@ -77,13 +79,16 @@ Pixelator::Pixelator( unsigned int windowWidth, unsigned int windowHeight, unsig
 Pixelator::~Pixelator()
 {
 	delete this->texture;
+#ifndef HEADLESS
 	glfwDestroyWindow( this->window );
 	glfwTerminate();
+#endif
 }
 
 
 void Pixelator::draw()
 {
+#ifndef HEADLESS
 	// set viewport to current framebuffer size
 	int width = 0, height = 0;
 	glfwGetFramebufferSize( this->window, &width, &height );
@@ -111,11 +116,13 @@ void Pixelator::draw()
 		glTexCoord2f( 1.0f, 1.0f ); glVertex2f( 1.0f, 1.0f );
 		glTexCoord2f( 0.0f, 1.0f ); glVertex2f( 0.0f, 1.0f );
 	glEnd();
+#endif
 }
 
 
 void Pixelator::wait()
 {
+#ifndef HEADLESS
 	// setup key callback to detect any key press
 	this->anyKeyPressed = false;
 	GLFWkeyfun oldKeyCallback = glfwSetKeyCallback( this->window, GLFWKeyCallback );
@@ -129,11 +136,13 @@ void Pixelator::wait()
 	// restore previous key callback
 	glfwSetKeyCallback( this->window, oldKeyCallback );
 	this->anyKeyPressed = false;
+#endif
 }
 
 
 void Pixelator::update()
 {
+#ifndef HEADLESS
 	// upload texture to GPU
 	this->texture->update( *this );
 
@@ -148,6 +157,7 @@ void Pixelator::update()
 
 	// process window events
 	glfwPollEvents();
+#endif
 }
 
 

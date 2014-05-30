@@ -35,9 +35,9 @@ struct Face
 typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
 
-glm::vec3 lightAmbientColor( 0.05f, 0.05f, 0.05f );
-glm::vec3    lightDirection( 1.0f, -1.0f,  0.0f );
-glm::vec3        lightColor( 1.0f,  1.0f,  1.0f );
+glm::vec3 lightAmbientColor( 0.1f, 0.1f, 0.1f );
+glm::vec3    lightDirection( 1.0f,-1.0f, 0.0f );
+glm::vec3        lightColor( 1.0f, 1.0f, 1.0f );
 
 
 void clear( Pixelator & p, const glm::vec4 & color = glm::vec4( 0, 0, 0, 0 ), float depth = 1.0f )
@@ -136,7 +136,7 @@ void drawTriangle( Pixelator & p, const Face & tf )
 				);
 
 				// interpolated vertex color
-				glm::vec3 vcolor(
+				glm::vec3 color(
 					tf.a.color.r * u + tf.b.color.r * v + tf.c.color.r * w,
 					tf.a.color.g * u + tf.b.color.g * v + tf.c.color.g * w,
 					tf.a.color.b * u + tf.b.color.b * v + tf.c.color.b * w
@@ -151,12 +151,10 @@ void drawTriangle( Pixelator & p, const Face & tf )
 
 				// diffuse lighting color
 				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
-//				d = glm::clamp( d, 0.0f, 1.0f ); // "correct" diffuse lighting - if pixel is facing away from light, it is black
-				d = d * 0.5f + 0.5f; // alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
-				glm::vec3 diffuse = lightColor * d;
+				d = glm::max( 0.0f, d );
+				glm::vec3 lightDiffuseColor = lightColor * d;
 
-				glm::vec3 finalColor = vcolor * diffuse + lightAmbientColor;
-
+				glm::vec3 finalColor = color * ( lightDiffuseColor + lightAmbientColor );
 				setPixel( p, position, glm::vec4( finalColor, 1.0f ) );
 			}
 		}

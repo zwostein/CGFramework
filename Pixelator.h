@@ -24,6 +24,9 @@ public:
 	void writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat = BitmapFile::RGB );
 	void readBMP( const std::string & fileName );
 
+	unsigned int getCanvasWidth() const { return texture->getWidth(); }
+	unsigned int getCanvasHeight() const { return texture->getHeight(); }
+
 	GLFWwindow * getWindow() { return window; }
 
 private:

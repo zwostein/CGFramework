@@ -1,6 +1,11 @@
 cmake_minimum_required( VERSION 2.6 )
 project( cgframework )
 
+if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
+	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra" )
+endif()
+
 find_package( OpenGL REQUIRED )
 include_directories( ${OPENGL_INCLUDE_DIRS} )
 

@@ -11,6 +11,13 @@
 #include "BitmapFile.hpp"
 
 
+#if defined(__GNUC__)
+	#define DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+	#define DEPRECATED __declspec(deprecated)
+#endif
+
+
 class Pixelator : public ImageBuffer
 {
 public:
@@ -23,6 +30,9 @@ public:
 	void update(); ///< updates window - draws canvas and processes window events
 	void writeBMP( const std::string & fileName, BitmapFile::PixelFormat pixelFormat = BitmapFile::RGB );
 	void readBMP( const std::string & fileName );
+
+	DEPRECATED unsigned int getCanvasWidth() const { return texture->getWidth(); }
+	DEPRECATED unsigned int getCanvasHeight() const { return texture->getHeight(); }
 
 	GLFWwindow * getWindow() { return window; }
 

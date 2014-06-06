@@ -17,7 +17,7 @@ namespace BitmapFile
 
 	ImageBuffer * load( const std::string & fileName );
 	bool write( const ImageBuffer & imageBuffer, const std::string & fileName, const PixelFormat & pixelFormat = RGB );
-};
+}
 
 
 #endif

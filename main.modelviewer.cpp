@@ -35,9 +35,9 @@ struct Face
 typedef unsigned short zBuffer_t;
 std::vector<zBuffer_t> zBuffer;
 
-glm::vec3 lightAmbientColor( 0.01f, 0.01f, 0.01f );
-glm::vec3    lightDirection( 1.0f, -1.0f,  0.0f );
-glm::vec3        lightColor( 1.0f,  1.0f,  1.0f );
+glm::vec3 lightAmbientColor( 0.1f, 0.1f, 0.1f );
+glm::vec3    lightDirection( 1.0f,-1.0f, 0.0f );
+glm::vec3        lightColor( 1.0f, 1.0f, 1.0f );
 
 
 void clear( Pixelator & p, const glm::vec4 & color = glm::vec4( 0, 0, 0, 0 ), float depth = 1.0f )
@@ -135,6 +135,13 @@ void drawTriangle( Pixelator & p, const Face & tf )
 					tf.a.position.z*u + tf.b.position.z*v + tf.c.position.z*w
 				);
 
+				// interpolated vertex color
+				glm::vec3 color(
+					tf.a.color.r * u + tf.b.color.r * v + tf.c.color.r * w,
+					tf.a.color.g * u + tf.b.color.g * v + tf.c.color.g * w,
+					tf.a.color.b * u + tf.b.color.b * v + tf.c.color.b * w
+				);
+
 				// interpolated normal
 				glm::vec3 normal(
 					tf.a.normal.x * u + tf.b.normal.x * v + tf.c.normal.x * w,
@@ -144,46 +151,35 @@ void drawTriangle( Pixelator & p, const Face & tf )
 
 				// diffuse lighting color
 				float d = glm::dot( glm::normalize(normal), glm::normalize(lightDirection) );
-//				d = clamped( d, 0.0f, 1.0f ); // "correct" diffuse lighting - if pixel is facing away from light, it is black
-				d = d * 0.5f + 0.5f; // alternate diffuse lighting - causes pixels facing away from light still beeing lit slightly
-				glm::vec3 diffuse = lightColor * d;
+				d = glm::max( 0.0f, d );
+				glm::vec3 lightDiffuseColor = lightColor * d;
 
-				// interpolated vertex color
-				glm::vec3 vcolor(
-					tf.a.color.r * u + tf.b.color.r * v + tf.c.color.r * w,
-					tf.a.color.g * u + tf.b.color.g * v + tf.c.color.g * w,
-					tf.a.color.b * u + tf.b.color.b * v + tf.c.color.b * w
-				);
-
-				setPixel( p, position, glm::vec4( vcolor * diffuse + lightAmbientColor, 1.0f ) );
+				glm::vec3 finalColor = color * ( lightDiffuseColor + lightAmbientColor );
+				setPixel( p, position, glm::vec4( finalColor, 1.0f ) );
 			}
 		}
 	}
 }
 
 
-Vertex getVertex( const BlenderVuforiaExportObject & o, unsigned int index )
+Vertex getVertex( const BlenderVuforiaExportObject & o, unsigned int vertexIndex )
 {
 	Vertex v;
-	v.position = glm::vec3( o.vertices[o.indices[index]*3],
-	                        o.vertices[o.indices[index]*3+1],
-	                        o.vertices[o.indices[index]*3+2] );
-	v.normal = glm::vec3( o.normals[o.indices[index]*3],
-	                        o.normals[o.indices[index]*3+1],
-	                        o.normals[o.indices[index]*3+2] );
-	v.color = glm::vec3( o.colors[o.indices[index]*3],
-	                        o.colors[o.indices[index]*3+1],
-	                        o.colors[o.indices[index]*3+2] );
+	unsigned int i = o.indices[vertexIndex] * 3; // lookup vector index and stride 3 elements (x,y,z)
+	v.position = glm::vec3( o.vertices[i], o.vertices[i+1], o.vertices[i+2] );
+	v.normal   = glm::vec3( o.normals[i],  o.normals[i+1],  o.normals[i+2] );
+	v.color    = glm::vec3( o.colors[i],   o.colors[i+1],   o.colors[i+2] );
 	return v;
 }
 
 
-Face getFace( const BlenderVuforiaExportObject & o, unsigned int index )
+Face getFace( const BlenderVuforiaExportObject & o, unsigned int faceIndex )
 {
 	Face f;
-	f.a = getVertex( o, index*3 );
-	f.b = getVertex( o, index*3+1 );
-	f.c = getVertex( o, index*3+2 );
+	unsigned int i = faceIndex * 3; // stride 3 vertices (triangle)
+	f.a = getVertex( o, i );
+	f.b = getVertex( o, i+1 );
+	f.c = getVertex( o, i+2 );
 	return f;
 }
 
@@ -235,6 +231,12 @@ void rasterizeObject( Pixelator & p, const glm::mat4 & mvp, const BlenderVuforia
 		glm::vec4 ca = mymvp * va;
 		glm::vec4 cb = mymvp * vb;
 		glm::vec4 cc = mymvp * vc;
+
+		// (very) simple clipping - discards complete triangle
+		if( ca.z <= std::numeric_limits<float>::epsilon() ||
+		    cb.z <= std::numeric_limits<float>::epsilon() ||
+		    cc.z <= std::numeric_limits<float>::epsilon() )
+			continue;
 
 		// to device coordinates
 		glm::vec3 da = cc2ndc( ca );
@@ -294,7 +296,7 @@ int main( int argc, char ** argv )
 		static float beta = 0.0f;       // left mouse button y-axis
 		static float distance = 80.0f; // right mouse button y-axis
 		static float fov = 90.0f;     // right mouse button x-axis
-		static float res = 6;        // middle mouse button <-axis
+		static float res = 6;        // middle mouse button y-axis
 
 
 		////////////////////////////////
@@ -389,10 +391,10 @@ int main( int argc, char ** argv )
 
 		// draw model
 //		rasterizeObject( p, mvp, cubeObject );
-		rasterizeObject( p, mvp , suzanneObject);
+		rasterizeObject( p, mvp, suzanneObject);
 //		rasterizeObject( p, mvp, waveObject );
 
-		// draw coordinate markers
+		// draw coordinate markers         from                     to                 from color             to color
 		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3( 60,  0,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 1, 0, 0 ) );
 		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3(  0, 60,  0 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 1, 0 ) );
 		rasterizeLine( p, mvp, glm::vec3( 0, 0, 0 ), glm::vec3(  0,  0, 60 ), glm::vec3( 1, 1, 1 ), glm::vec3( 0, 0, 1 ) );

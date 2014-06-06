@@ -2,8 +2,6 @@
 #define PIXELATOR_H_INCLUDED
 
 
-#include <GLFW/glfw3.h>
-
 #include <string>
 
 #include "ImageBuffer.h"
@@ -17,6 +15,8 @@
 	#define DEPRECATED __declspec(deprecated)
 #endif
 
+
+class GLFWwindow;
 
 class Pixelator : public ImageBuffer
 {
